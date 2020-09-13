@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Locate the user</title>
+<meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+<script src="https://api.mapbox.com/mapbox-gl-js/v1.11.1/mapbox-gl.js"></script>
+<link href="https://api.mapbox.com/mapbox-gl-js/v1.11.1/mapbox-gl.css" rel="stylesheet" />
+</head>
+<body>
+
+	<style>
+		body { margin: 0; padding: 0; }
+		#map { position: absolute; top: 0; bottom: 0; width: 100%; }
+
+		/*hide mapbox icon and description(bottom-right)*/
+		div.mapboxgl-ctrl-attrib-inner{
+		display: none;
+
+		}
+		/*set direction of popup content right to left*/
+		.mapboxgl-popup-content {
+					 direction: rtl;
+		}
+	</style>
+
+<div id="map"></div>
+<script>
+//access mapbox using access token
+mapboxgl.accessToken = 'pk.eyJ1IjoicGJpemVoIiwiYSI6ImNqNnA1eTcyYzBxYmUyd3BrNjkwOWg4d2sifQ.YJDQpV4dgfwfsFVrEqkHJw';
+//set direction of mapbox text content right to left
+mapboxgl.setRTLTextPlugin('https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-rtl-text/v0.2.3/mapbox-gl-rtl-text.js');
+var map = new mapboxgl.Map({
+container: 'map', // container id
+style: 'mapbox://styles/mapbox/streets-v11',
+center: [51.470148,35.777635], // starting position
+zoom: 3 // starting zoom
+});
+
+//add layer of main point(points) to the map
+map.on('load', function () {
+map.addSource('places', {
+'type': 'geojson',
+'data': {
+'type': 'FeatureCollection',
+'features': [
+{
+'type': 'Feature',
+'properties': {
+'description':
+//html that will apears in the popup when user is close enough
+'<strong>سلام!</strong><p><a href="http://www.futurecity.ir/" target="_blank" title="Opens in a new window">شهر آینده</a>...</p>',
+'icon': 'rocket'
+},
+'geometry': {
+'type': 'Point',
+//main point
+'coordinates': [51.436687, 35.732722]
+}
+},
+]
+}
+});
+
+//main point position(same as layer coordinates)
+var main_location= [51.436687, 35.732722]
+var main_lon =51.436687;
+var main_lat = 35.732722;
+
+
+
+// Add a layer showing the main point
+map.addLayer({
+'id': 'places',
+'type': 'symbol',
+'source': 'places',
+'layout': {
+'icon-image': '{icon}-15',
+'icon-allow-overlap': true
+}
+});
+//measuring distance between two coordinates
+function getDistanceFromLatLonInKm(main_lat, main_lon, lat, lon) {
+  var R = 6371; // Radius of the earth in km
+  var dLat = deg2rad(lat-main_lat);  // deg2rad below
+  var dLon = deg2rad(lon-main_lon);
+  var a =
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(deg2rad(main_lat)) * Math.cos(deg2rad(lat)) *
+    Math.sin(dLon/2) * Math.sin(dLon/2)
+    ;
+  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  var d = R * c; // Distance in km
+  return d;
+}
+function deg2rad(deg) {
+  return deg * (Math.PI/180)
+}
+//creat a popup
+var popup=new mapboxgl.Popup()
+var Error_popup='<strong>هنوز به اندازه کافی نزدیک نشده‌اید!</strong><p>';
+var description='';
+// When a click event occurs on a feature in the places layer, open a popup at the
+// location of the feature, with description HTML .
+map.on('click', 'places', function (e) {
+var coordinates = e.features[0].geometry.coordinates.slice();
+description = e.features[0].properties.description;
+//assign main point coordinate and HTML to popup
+popup.on()
+.setLngLat(coordinates)
+.setHTML(Error_popup)
+.addTo(map);
+
+
+});
+
+// Change the cursor to a pointer when the mouse is over the places layer.
+map.on('mouseenter', 'places', function () {
+map.getCanvas().style.cursor = 'pointer';
+});
+
+// Change it back to a pointer when it leaves.
+map.on('mouseleave', 'places', function () {
+map.getCanvas().style.cursor = '';
+});
+
+// Add geolocate control to the map.
+var geolocate = new mapboxgl.GeolocateControl({
+positionOptions: {
+//live location
+enableHighAccuracy: true
+},
+trackUserLocation: true
+});
+//add control button and save long and lat in position variable
+var lon =0;
+var lat = 0;
+var position = [0, 0];
+map.addControl(geolocate);
+//when location control button is clicked:
+geolocate.on('geolocate', function(e) {
+	//save user current location long adn lat in variables
+      lon = e.coords.longitude;
+      lat = e.coords.latitude;
+      position = [lon, lat];
+			//console shows distance between main point and user current location
+      console.log(getDistanceFromLatLonInKm(main_lat, main_lon, lat, lon));
+			//if user is within 1km from main point popup content change to main point information
+			if(getDistanceFromLatLonInKm(main_lat, main_lon, lat, lon)<1){
+				popup.on()
+				.setHTML(description)
+				.addTo(map);
+			}
+			//if user is farther than 1km	from main point popup doesn't show information
+			else {
+				popup.on()
+ 			 .setHTML(Error_popup)
+ 			 .addTo(map);
+			}
+
+});
+});
+
+</script>
+
+</body>
+</html>
